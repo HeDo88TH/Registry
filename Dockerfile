@@ -39,9 +39,11 @@ RUN cd /Registry/Registry.Web && dotnet dev-certs https && dotnet publish --conf
 # published files are in /Registry/Registry.Web/bin/Release/net5.0/linux-x64
 
 # Third and final image is the runner that will get all the build files from the previous images
-FROM mcr.microsoft.com/dotnet/aspnet:6.0 as runner
+FROM mcr.microsoft.com/dotnet/aspnet:5.0-focal as runner
 ENV TZ=Europe/Rome
 RUN ln -snf /usr/share/zoneinfo/$TZ /etc/localtime && echo $TZ > /etc/timezone
+
+RUN apt update && apt install -y --fix-missing --no-install-recommends gnupg
 
 # Add gis ppa
 RUN echo "deb http://ppa.launchpad.net/ubuntugis/ubuntugis-unstable/ubuntu focal main" > /etc/apt/sources.list.d/ubuntugis.list 
@@ -49,12 +51,12 @@ RUN echo "deb-src http://ppa.launchpad.net/ubuntugis/ubuntugis-unstable/ubuntu f
 RUN apt-key adv --keyserver keyserver.ubuntu.com --recv-keys 6B827C12C2D425E227EDCA75089EBE08314DF160
 
 # Install DroneDB dependencies
-RUN apt install -y --fix-missing --no-install-recommends gnupg libspatialite7 libsqlite3-0 libexiv2-27 libgdal29 libcurl4 libzip5 libstdc++6 libgcc-s1 libc6 libpdal-base12
-RUN cp libddb.so /usr/lib/libddb.so
+RUN apt install -y --fix-missing --no-install-recommends libspatialite7 libsqlite3-0 libexiv2-27 libgdal29 libcurl4 libzip5 libstdc++6 libgcc-s1 libc6 libpdal-base12
 
 # Install DroneDB from deb package and set library path
 COPY --from=ddb-builder /DroneDB/build/ /DroneDB
 RUN cd /DroneDB && dpkg -i *.deb
+RUN cp /DroneDB/libddb.so /usr/lib/libddb.so
 ENV LD_LIBRARY_PATH="/usr/local/lib:${LD_LIBRARY_PATH}"
 
 # Copy compiled client app in the appropriate folder
